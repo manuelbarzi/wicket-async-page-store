@@ -8,6 +8,7 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.wicket.page.IManageablePage;
+import org.apache.wicket.pageStore.IDataStore;
 import org.apache.wicket.pageStore.IPageStore;
 import org.apache.wicket.util.lang.Args;
 import org.slf4j.Logger;
@@ -66,6 +67,25 @@ public class AsyncPageStore implements IPageStore {
 	 * {@link Entry}s which are not yet stored by the wrapped {@link IPageStore}
 	 */
 	private final ConcurrentMap<String, Entry> entryMap;
+	
+	/**
+	 * Construct.
+	 * 
+	 * @param pageStore
+	 *            the wrapped {@link IPageStore} that actually saved the page
+	 * @param capacity
+	 *            the capacity of the queue that delays the saving
+	 */
+	public AsyncPageStore(final IPageStore pageStore, final int capacity) {
+		this.pageStore = pageStore;
+		entries = new LinkedBlockingQueue<Entry>(capacity);
+		entryMap = new ConcurrentHashMap<String, Entry>();
+
+		PageSavingRunnable savingRunnable = new PageSavingRunnable(pageStore, entries, entryMap);
+		pageSavingThread = new Thread(savingRunnable, "AsyncPageStore-PageSavingThread");
+		pageSavingThread.setDaemon(true);
+		pageSavingThread.start();
+	}
 
 	/**
 	 * Little helper
@@ -180,17 +200,6 @@ public class AsyncPageStore implements IPageStore {
 				}
 			}
 		}
-	}
-
-	public AsyncPageStore(final IPageStore pageStore, final int capacity) {
-		this.pageStore = pageStore;
-		entries = new LinkedBlockingQueue<Entry>(capacity);
-		entryMap = new ConcurrentHashMap<String, Entry>();
-
-		PageSavingRunnable savingRunnable = new PageSavingRunnable(pageStore, entries, entryMap);
-		pageSavingThread = new Thread(savingRunnable, "AsyncPageStore-PageSavingThread");
-		pageSavingThread.setDaemon(true);
-		pageSavingThread.start();
 	}
 
 	@Override
