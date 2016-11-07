@@ -8,7 +8,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.wicket.page.IManageablePage;
-import org.apache.wicket.pageStore.IDataStore;
 import org.apache.wicket.pageStore.IPageStore;
 import org.apache.wicket.util.lang.Args;
 import org.slf4j.Logger;
