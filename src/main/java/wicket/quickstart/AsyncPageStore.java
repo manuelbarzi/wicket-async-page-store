@@ -267,9 +267,9 @@ public class AsyncPageStore implements IPageStore {
 		entryMap.put(key, entry);
 
 		try {
-			boolean added = entries.offer(entry, OFFER_WAIT, TimeUnit.MILLISECONDS);
-
-			if (added == false) {
+			if (entries.offer(entry, OFFER_WAIT, TimeUnit.MILLISECONDS)) {
+				log.debug("Offered for storing asynchronously page with id '{}' in session '{}'", page.getPageId(), sessionId);
+			} else {
 				log.debug("Storing synchronously page with id '{}' in session '{}'", page.getPageId(), sessionId);
 				entryMap.remove(key);
 				pageStore.storePage(sessionId, page);
