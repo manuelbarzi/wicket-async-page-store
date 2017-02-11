@@ -187,6 +187,8 @@ public class AsyncPageStoreTest {
 		assertTrue(syncStoredCountByTiming == syncStoredCountByHash);
 	}
 
+	// test run
+
 	private class Metrics {
 		private IManageablePageExtended storedPage;
 		private long storingMillis;
@@ -198,6 +200,65 @@ public class AsyncPageStoreTest {
 					+ restoredPage + ", restoringMillis = " + restoringMillis + "]";
 		}
 	}
+
+	private List<Metrics> runTest(int sessions, int pages, long writeMillis, long readMillis,
+			int asyncPageStoreCapacity) throws InterruptedException {
+
+		List<Metrics> results = new ArrayList<>();
+
+		final CountDownLatch lock = new CountDownLatch(pages * sessions);
+
+		ISerializer serializer = new DeflatedJavaSerializer("applicationKey");
+		// ISerializer serializer = new DummySerializer();
+		IDataStore dataStore = new DiskDataStore("applicationName", new File("./target"), Bytes.bytes(10000l));
+		IPageStore pageStore = new DefaultPageStore(serializer, dataStore, 0) {
+			// IPageStore pageStore = new DummyPageStore(new
+			// File("target/store")) {
+
+			@Override
+			public void storePage(String sessionId, IManageablePage page) {
+
+				super.storePage(sessionId, page);
+
+				lock.countDown();
+			}
+		};
+
+		IPageStore asyncPageStore = new AsyncPageStore(pageStore, asyncPageStoreCapacity);
+
+		Stopwatch stopwatch = Stopwatch.createUnstarted();
+
+		for (int pageId = 1; pageId <= pages; pageId++) {
+			for (int sessionId = 1; sessionId <= sessions; sessionId++) {
+				String session = String.valueOf(sessionId);
+				Metrics metrics = new Metrics();
+
+				stopwatch.reset();
+				IManageablePageExtended page = new DummyPage(pageId, around(writeMillis), around(readMillis), session);
+				stopwatch.start();
+				asyncPageStore.storePage(session, page);
+				metrics.storedPage = page;
+				metrics.storingMillis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+				stopwatch.reset();
+				stopwatch.start();
+				metrics.restoredPage = IManageablePageExtended.class.cast(asyncPageStore.getPage(session, pageId));
+				metrics.restoringMillis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
+
+				results.add(metrics);
+			}
+		}
+
+		lock.await(pages * sessions * (writeMillis + readMillis), TimeUnit.MILLISECONDS);
+
+		return results;
+	}
+
+	private long around(long target) {
+		return RandomUtils.nextLong((long) (target * .9), (long) (target * 1.1));
+	}
+
+	// other aux dummy impls for testing
 
 	@SuppressWarnings("unused")
 	private class DummySerializer implements ISerializer {
@@ -349,63 +410,6 @@ public class AsyncPageStoreTest {
 		public IManageablePage convertToPage(Object page) {
 			return null;
 		}
-	}
-
-	private List<Metrics> runTest(int sessions, int pages, long writeMillis, long readMillis,
-			int asyncPageStoreCapacity) throws InterruptedException {
-
-		List<Metrics> results = new ArrayList<>();
-
-		final CountDownLatch lock = new CountDownLatch(pages * sessions);
-
-		ISerializer serializer = new DeflatedJavaSerializer("applicationKey");
-		// ISerializer serializer = new DummySerializer();
-		IDataStore dataStore = new DiskDataStore("applicationName", new File("./target"), Bytes.bytes(10000l));
-		IPageStore pageStore = new DefaultPageStore(serializer, dataStore, 0) {
-			// IPageStore pageStore = new DummyPageStore(new
-			// File("target/store")) {
-
-			@Override
-			public void storePage(String sessionId, IManageablePage page) {
-
-				super.storePage(sessionId, page);
-
-				lock.countDown();
-			}
-		};
-
-		IPageStore asyncPageStore = new AsyncPageStore(pageStore, asyncPageStoreCapacity);
-
-		Stopwatch stopwatch = Stopwatch.createUnstarted();
-
-		for (int pageId = 1; pageId <= pages; pageId++) {
-			for (int sessionId = 1; sessionId <= sessions; sessionId++) {
-				String session = String.valueOf(sessionId);
-				Metrics metrics = new Metrics();
-
-				stopwatch.reset();
-				IManageablePageExtended page = new DummyPage(pageId, around(writeMillis), around(readMillis), session);
-				stopwatch.start();
-				asyncPageStore.storePage(session, page);
-				metrics.storedPage = page;
-				metrics.storingMillis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-				stopwatch.reset();
-				stopwatch.start();
-				metrics.restoredPage = IManageablePageExtended.class.cast(asyncPageStore.getPage(session, pageId));
-				metrics.restoringMillis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
-
-				results.add(metrics);
-			}
-		}
-
-		lock.await(pages * sessions * (writeMillis + readMillis), TimeUnit.MILLISECONDS);
-
-		return results;
-	}
-
-	private long around(long target) {
-		return RandomUtils.nextLong((long) (target * .9), (long) (target * 1.1));
 	}
 
 }

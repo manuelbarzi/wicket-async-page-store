@@ -6,22 +6,29 @@ import java.util.concurrent.TimeUnit;
 import org.apache.wicket.markup.ComponentTag;
 import org.apache.wicket.markup.html.WebPage;
 import org.apache.wicket.markup.html.link.Link;
-import org.apache.wicket.request.mapper.parameter.PageParameters;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Home page.
  * 
  * @author manuelbarzi
  */
+@SuppressWarnings("serial")
 public class HomePage extends WebPage {
-	private static final long serialVersionUID = 1L;
+
+	private static final Logger log = LoggerFactory.getLogger(HomePage.class);
+
+	private String sessionId;
 
 	/**
 	 * @param parameters
 	 */
-	@SuppressWarnings("serial")
-	public HomePage(final PageParameters parameters) {
-		super(parameters);
+	public HomePage() {
+		super();
+
+		sessionId = getSession().getId();
+
 		add(new Link<Void>("link") {
 
 			/**
@@ -44,27 +51,39 @@ public class HomePage extends WebPage {
 		});
 	}
 
-	/**
-	 * @param s
-	 * @throws IOException
-	 */
-	private void writeObject(java.io.ObjectOutputStream s) throws IOException {
-		count("serialize " + getPageId());
+	private interface Progress {
+		void onStep(int step, int maxSteps);
 	}
-	
-	private void count(String title) {
-		int total = 5;
-		for (int i = 0; i < total; i++) {
+
+	private void delay(int seconds, Progress progress) {
+		for (int i = 1; i <= seconds; i++) {
 			try {
 				Thread.sleep(TimeUnit.SECONDS.toMillis(1));
-				System.out.println(title + " (step " + (i + 1) + " of " + total + ")");
+				progress.onStep(i, seconds);
 			} catch (final InterruptedException e) {
 				throw new RuntimeException(e);
 			}
 		}
 	}
 
-	private void readObject(java.io.ObjectInputStream s) throws IOException, ClassNotFoundException {
-		count("deserialize " + getPageId());
+	private void writeObject(java.io.ObjectOutputStream s) throws IOException {
+		delay(2, new Progress() {
+			@Override
+			public void onStep(int step, int maxSteps) {
+				log.debug("serialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps,
+						sessionId);
+			}
+		});
 	}
+
+	private void readObject(java.io.ObjectInputStream s) throws IOException, ClassNotFoundException {
+		delay(2, new Progress() {
+			@Override
+			public void onStep(int step, int maxSteps) {
+				log.debug("deserialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps,
+						sessionId);
+			}
+		});
+	}
+
 }

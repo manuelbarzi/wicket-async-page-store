@@ -18,19 +18,20 @@ import org.slf4j.LoggerFactory;
  * <p>
  * Creates an {@link Entry} for each double (sessionId, page) and puts it in
  * {@link #entries} queue if there is room. Acts as producer.<br/>
- * Later {@link PageSavingRunnable} reads in blocking manner from {@link #entries} and saves each
- * entry. Acts as consumer.
+ * Later {@link PageSavingRunnable} reads in blocking manner from
+ * {@link #entries} and saves each entry. Acts as consumer.
  * </p>
- * It starts only one instance of {@link PageSavingRunnable} because all we need is to make the page
- * storing asynchronous. We don't want to write concurrently in the wrapped {@link IPageStore},
- * though it may happen in the extreme case when the queue is full. These cases should be avoided.
+ * It starts only one instance of {@link PageSavingRunnable} because all we need
+ * is to make the page storing asynchronous. We don't want to write concurrently
+ * in the wrapped {@link IPageStore}, though it may happen in the extreme case
+ * when the queue is full. These cases should be avoided.
  * 
  * Based on AsynchronousDataStore (@author Matej Knopp).
  * 
- * @author manuelbarzi 
+ * @author manuelbarzi
  */
 public class AsyncPageStore implements IPageStore {
-	
+
 	/** Log for reporting. */
 	private static final Logger log = LoggerFactory.getLogger(AsyncPageStore.class);
 
@@ -66,7 +67,7 @@ public class AsyncPageStore implements IPageStore {
 	 * {@link Entry}s which are not yet stored by the wrapped {@link IPageStore}
 	 */
 	private final ConcurrentMap<String, Entry> entryMap;
-	
+
 	/**
 	 * Construct.
 	 * 
@@ -201,7 +202,9 @@ public class AsyncPageStore implements IPageStore {
 		}
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.apache.wicket.pageStore.IPageStore#destroy()
 	 */
 	@Override
@@ -218,47 +221,52 @@ public class AsyncPageStore implements IPageStore {
 		pageStore.destroy();
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#getPage(java.lang.String, int)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.apache.wicket.pageStore.IPageStore#getPage(java.lang.String,
+	 * int)
 	 */
 	@Override
 	public IManageablePage getPage(String sessionId, int pageId) {
 		Entry entry = getEntry(sessionId, pageId);
 		if (entry != null) {
-			log.debug("Returning the page of a non-stored entry with sessionId '{}' and pageId '{}'", sessionId,
+			log.debug("Returning the page of a non-stored entry with session id '{}' and page id '{}'", sessionId,
 					pageId);
 			return entry.page;
 		}
 		IManageablePage page = pageStore.getPage(sessionId, pageId);
 
-		log.debug("Returning the page of a stored entry with sessionId '{}' and pageId '{}'", sessionId, pageId);
+		log.debug("Returning the page of a stored entry with session id '{}' and page id '{}'", sessionId, pageId);
 
 		return page;
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#removePage(java.lang.String, int)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.apache.wicket.pageStore.IPageStore#removePage(java.lang.String,
+	 * int)
 	 */
 	@Override
 	public void removePage(String sessionId, int pageId) {
 		String key = getKey(sessionId, pageId);
-		if (key != null)
-		{
+		if (key != null) {
 			Entry entry = entryMap.remove(key);
-			if (entry != null)
-			{
+			if (entry != null) {
 				entries.remove(entry);
 			}
 		}
-
 
 		pageStore.removePage(sessionId, pageId);
 
 	}
 
-
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#storePage(java.lang.String, org.apache.wicket.page.IManageablePage)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see org.apache.wicket.pageStore.IPageStore#storePage(java.lang.String,
+	 * org.apache.wicket.page.IManageablePage)
 	 */
 	@Override
 	public void storePage(String sessionId, IManageablePage page) {
@@ -268,7 +276,8 @@ public class AsyncPageStore implements IPageStore {
 
 		try {
 			if (entries.offer(entry, OFFER_WAIT, TimeUnit.MILLISECONDS)) {
-				log.debug("Offered for storing asynchronously page with id '{}' in session '{}'", page.getPageId(), sessionId);
+				log.debug("Offered for storing asynchronously page with id '{}' in session '{}'", page.getPageId(),
+						sessionId);
 			} else {
 				log.debug("Storing synchronously page with id '{}' in session '{}'", page.getPageId(), sessionId);
 				entryMap.remove(key);
@@ -282,7 +291,9 @@ public class AsyncPageStore implements IPageStore {
 
 	}
 
-	/* (non-Javadoc)
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see org.apache.wicket.pageStore.IPageStore#unbind(java.lang.String)
 	 */
 	@Override
@@ -290,26 +301,35 @@ public class AsyncPageStore implements IPageStore {
 		pageStore.unbind(sessionId);
 	}
 
-	
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#prepareForSerialization(java.lang.String, java.io.Serializable)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.wicket.pageStore.IPageStore#prepareForSerialization(java.lang.
+	 * String, java.io.Serializable)
 	 */
 	@Override
 	public Serializable prepareForSerialization(String sessionId, Serializable page) {
 		return pageStore.prepareForSerialization(sessionId, page);
 	}
 
-	
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#restoreAfterSerialization(java.io.Serializable)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.wicket.pageStore.IPageStore#restoreAfterSerialization(java.io.
+	 * Serializable)
 	 */
 	@Override
 	public Object restoreAfterSerialization(Serializable serializable) {
 		return pageStore.restoreAfterSerialization(serializable);
 	}
 
-	/* (non-Javadoc)
-	 * @see org.apache.wicket.pageStore.IPageStore#convertToPage(java.lang.Object)
+	/*
+	 * (non-Javadoc)
+	 * 
+	 * @see
+	 * org.apache.wicket.pageStore.IPageStore#convertToPage(java.lang.Object)
 	 */
 	@Override
 	public IManageablePage convertToPage(Object page) {
