@@ -94,8 +94,7 @@ public class AsyncPageStoreTest {
 		 * @throws IOException
 		 */
 		private void writeObject(java.io.ObjectOutputStream s) throws IOException {
-			log.debug("serializing page with id '" + getPageId() + "' in session with id '" + sessionId + "' for "
-					+ writeMillis + "ms");
+			log.debug("serializing page {} for {}ms (session {})", getPageId(), writeMillis, sessionId);
 			try {
 				Thread.sleep(writeMillis);
 			} catch (InterruptedException e) {
@@ -109,8 +108,7 @@ public class AsyncPageStoreTest {
 		}
 
 		private void readObject(java.io.ObjectInputStream s) throws IOException, ClassNotFoundException {
-			log.debug("deserializing page with id '" + getPageId() + "' in session with id '" + sessionId + "' for "
-					+ writeMillis + "ms");
+			log.debug("deserializing page {} for {}ms (session {})", getPageId(), writeMillis, sessionId);
 			try {
 				Thread.sleep(readMillis);
 			} catch (InterruptedException e) {
@@ -133,6 +131,8 @@ public class AsyncPageStoreTest {
 		int asyncPageStoreCapacity = pages * sessions;
 
 		List<Metrics> results = runTest(sessions, pages, writeMillis, readMillis, asyncPageStoreCapacity);
+		
+		log.debug("metrics {}", results);
 
 		for (Metrics metrics : results) {
 			assertEquals(metrics.storedPage, metrics.restoredPage);
@@ -152,9 +152,7 @@ public class AsyncPageStoreTest {
 
 		List<Metrics> results = runTest(sessions, pages, writeMillis, readMillis, asyncPageStoreCapacity);
 
-		for (Metrics metrics : results) {
-			System.out.println(metrics);
-		}
+		log.debug("metrics {}", results);
 
 		int syncStoredCountByTiming = 0;
 		int syncStoredCountByHash = 0;
