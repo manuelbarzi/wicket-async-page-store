@@ -122,8 +122,14 @@ public class AsyncPageStoreTest {
 		}
 	}
 
+	/**
+	 * Store works fully async when number of pages handled never exceeds the
+	 * async-storage capacity.
+	 * 
+	 * @throws InterruptedException
+	 */
 	@Test
-	public void fullyAsyncWhenNotOverpassingStoreCapacity() throws InterruptedException {
+	public void fullyAsyncWhenNotExceedingStoreCapacity() throws InterruptedException {
 		int sessions = 2;
 		int pages = 5;
 		long writeMillis = 2000;
@@ -131,7 +137,7 @@ public class AsyncPageStoreTest {
 		int asyncPageStoreCapacity = pages * sessions;
 
 		List<Metrics> results = runTest(sessions, pages, writeMillis, readMillis, asyncPageStoreCapacity);
-		
+
 		log.debug("metrics {}", results);
 
 		for (Metrics metrics : results) {
@@ -141,8 +147,15 @@ public class AsyncPageStoreTest {
 		}
 	}
 
+	/**
+	 * Store works sync from when number of pages handled exceeds the given
+	 * async-storage capacity. It works async until the number of pages reaches
+	 * the limit (capacity).
+	 * 
+	 * @throws InterruptedException
+	 */
 	@Test
-	public void syncWhenOverpassingStoreCapacity() throws InterruptedException {
+	public void syncFromWhenExceedingStoreCapacity() throws InterruptedException {
 		int sessions = 2;
 		int pages = 5;
 		long writeMillis = 2000;

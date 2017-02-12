@@ -91,7 +91,7 @@ public class AsyncPageStore implements IPageStore {
 	 * Little helper
 	 * 
 	 * @param sessionId
-	 * @param id
+	 * @param pageId
 	 * @return Entry
 	 */
 	private Entry getEntry(final String sessionId, final int pageId) {

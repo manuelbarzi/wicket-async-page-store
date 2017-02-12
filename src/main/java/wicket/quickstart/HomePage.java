@@ -70,8 +70,7 @@ public class HomePage extends WebPage {
 		delay(2, new Progress() {
 			@Override
 			public void onStep(int step, int maxSteps) {
-				log.debug("serialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps,
-						sessionId);
+				log.debug("serialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps, sessionId);
 			}
 		});
 	}
@@ -80,8 +79,7 @@ public class HomePage extends WebPage {
 		delay(2, new Progress() {
 			@Override
 			public void onStep(int step, int maxSteps) {
-				log.debug("deserialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps,
-						sessionId);
+				log.debug("deserialize page {} (step {} of {}, session {})", getPageId(), step, maxSteps, sessionId);
 			}
 		});
 	}
