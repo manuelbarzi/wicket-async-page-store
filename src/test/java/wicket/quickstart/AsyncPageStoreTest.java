@@ -46,20 +46,16 @@ public class AsyncPageStoreTest {
 	/** Log for reporting. */
 	private static final Logger log = LoggerFactory.getLogger(AsyncPageStoreTest.class);
 
-	private interface IManageablePageExtended extends IManageablePage {
-		String getSessionId();
-	}
-
 	@SuppressWarnings("serial")
-	private static class DummyPage implements IManageablePageExtended {
+	private static class DummyPage implements IManageablePage {
 
-		private int id;
+		private int pageId;
 		private long writeMillis;
 		private long readMillis;
 		private String sessionId;
 
-		private DummyPage(int id, long writeMillis, long readMillis, String sessionId) {
-			this.id = id;
+		private DummyPage(int pageId, long writeMillis, long readMillis, String sessionId) {
+			this.pageId = pageId;
 			this.writeMillis = writeMillis;
 			this.readMillis = readMillis;
 			this.sessionId = sessionId;
@@ -72,12 +68,7 @@ public class AsyncPageStoreTest {
 
 		@Override
 		public int getPageId() {
-			return id;
-		}
-
-		@Override
-		public String getSessionId() {
-			return sessionId;
+			return pageId;
 		}
 
 		@Override
@@ -101,9 +92,9 @@ public class AsyncPageStoreTest {
 				throw new RuntimeException(e);
 			}
 
-			s.writeInt(id);
-			s.writeLong(readMillis);
+			s.writeInt(pageId);
 			s.writeLong(writeMillis);
+			s.writeLong(readMillis);
 			s.writeObject(sessionId);
 		}
 
@@ -115,10 +106,15 @@ public class AsyncPageStoreTest {
 				throw new RuntimeException(e);
 			}
 
-			id = s.readInt();
-			readMillis = s.readLong();
+			pageId = s.readInt();
 			writeMillis = s.readLong();
+			readMillis = s.readLong();
 			sessionId = (String) s.readObject();
+		}
+
+		public String toString() {
+			return "DummyPage[pageId = " + pageId + ", writeMillis = " + writeMillis + ", readMillis = " + readMillis
+					+ ", sessionId = " + sessionId + ", hashCode = " + hashCode() + "]";
 		}
 	}
 
@@ -129,7 +125,7 @@ public class AsyncPageStoreTest {
 	 * @throws InterruptedException
 	 */
 	@Test
-	public void fullyAsyncWhenNotExceedingStoreCapacity() throws InterruptedException {
+	public void storeBehavesAsyncWhenNotExceedingStoreCapacity() throws InterruptedException {
 		int sessions = 2;
 		int pages = 5;
 		long writeMillis = 2000;
@@ -138,7 +134,8 @@ public class AsyncPageStoreTest {
 
 		List<Metrics> results = runTest(sessions, pages, writeMillis, readMillis, asyncPageStoreCapacity);
 
-		log.debug("metrics {}", results);
+		for (Metrics metrics : results)
+			System.out.println(metrics);
 
 		for (Metrics metrics : results) {
 			assertEquals(metrics.storedPage, metrics.restoredPage);
@@ -148,14 +145,14 @@ public class AsyncPageStoreTest {
 	}
 
 	/**
-	 * Store works sync from when number of pages handled exceeds the given
+	 * Store behaves sync from when number of pages handled exceeds the given
 	 * async-storage capacity. It works async until the number of pages reaches
 	 * the limit (capacity).
 	 * 
 	 * @throws InterruptedException
 	 */
 	@Test
-	public void syncFromWhenExceedingStoreCapacity() throws InterruptedException {
+	public void storeBehavesSyncFromWhenExceedingStoreCapacity() throws InterruptedException {
 		int sessions = 2;
 		int pages = 5;
 		long writeMillis = 2000;
@@ -165,45 +162,32 @@ public class AsyncPageStoreTest {
 
 		List<Metrics> results = runTest(sessions, pages, writeMillis, readMillis, asyncPageStoreCapacity);
 
-		log.debug("metrics {}", results);
+		for (Metrics metrics : results)
+			System.out.println(metrics);
 
-		int syncStoredCountByTiming = 0;
-		int syncStoredCountByHash = 0;
+		int sync = 0;
 
 		for (int i = 0; i < results.size(); i++) {
 			Metrics metrics = results.get(i);
 
-			assertEquals(metrics.storedPage.getSessionId(), metrics.restoredPage.getSessionId());
+			assertEquals(metrics.storedPage.sessionId, metrics.restoredPage.sessionId);
 			assertEquals(metrics.storedPage.getPageId(), metrics.restoredPage.getPageId());
 
-			boolean syncFound = false;
-
-			if (metrics.storingMillis >= writeMillis || metrics.restoringMillis >= readMillis) {
-				syncStoredCountByTiming++;
-				syncFound |= true;
-			}
-
 			if (!metrics.storedPage.equals(metrics.restoredPage)) {
-				syncStoredCountByHash++;
-				syncFound |= true;
-			}
-
-			if (syncFound) {
-				assertTrue(syncStoredCountByTiming == syncStoredCountByHash);
+				assertTrue(metrics.storingMillis >= metrics.storedPage.writeMillis);
+				sync++;
 			}
 		}
 
-		assertTrue(syncStoredCountByTiming > 0);
-		assertTrue(syncStoredCountByHash > 0);
-		assertTrue(syncStoredCountByTiming == syncStoredCountByHash);
+		assertTrue(sync > 0);
 	}
 
 	// test run
 
 	private class Metrics {
-		private IManageablePageExtended storedPage;
+		private DummyPage storedPage;
 		private long storingMillis;
-		private IManageablePageExtended restoredPage;
+		private DummyPage restoredPage;
 		private long restoringMillis;
 
 		public String toString() {
@@ -245,7 +229,7 @@ public class AsyncPageStoreTest {
 				Metrics metrics = new Metrics();
 
 				stopwatch.reset();
-				IManageablePageExtended page = new DummyPage(pageId, around(writeMillis), around(readMillis), session);
+				DummyPage page = new DummyPage(pageId, around(writeMillis), around(readMillis), session);
 				stopwatch.start();
 				asyncPageStore.storePage(session, page);
 				metrics.storedPage = page;
@@ -253,7 +237,7 @@ public class AsyncPageStoreTest {
 
 				stopwatch.reset();
 				stopwatch.start();
-				metrics.restoredPage = IManageablePageExtended.class.cast(asyncPageStore.getPage(session, pageId));
+				metrics.restoredPage = DummyPage.class.cast(asyncPageStore.getPage(session, pageId));
 				metrics.restoringMillis = stopwatch.elapsed(TimeUnit.MILLISECONDS);
 
 				results.add(metrics);
@@ -271,7 +255,6 @@ public class AsyncPageStoreTest {
 
 	// other aux dummy impls for testing
 
-	@SuppressWarnings("unused")
 	private class DummySerializer implements ISerializer {
 
 		@Override
@@ -325,7 +308,6 @@ public class AsyncPageStoreTest {
 
 	}
 
-	@SuppressWarnings("unused")
 	private class DummyPageStore implements IPageStore {
 
 		private File folder;
