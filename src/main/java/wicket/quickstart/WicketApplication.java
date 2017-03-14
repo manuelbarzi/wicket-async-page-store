@@ -14,19 +14,21 @@ import org.apache.wicket.request.Response;
 import org.apache.wicket.util.time.Duration;
 
 /**
- * Application object for your web application. If you want to run this
- * application without deploying, run the Start class.
+ * Application object for your web application. If you want to run this application without
+ * deploying, run the Start class.
  * 
  * @see wicket.quickstart.Start#main(String[])
  * 
  * @author manuelbarzi
  */
-public class WicketApplication extends WebApplication {
+public class WicketApplication extends WebApplication
+{
 	/**
 	 * @see org.apache.wicket.Application#getHomePage()
 	 */
 	@Override
-	public Class<? extends WebPage> getHomePage() {
+	public Class<? extends WebPage> getHomePage()
+	{
 		return HomePage.class;
 	}
 
@@ -34,14 +36,17 @@ public class WicketApplication extends WebApplication {
 	 * @see org.apache.wicket.Application#init()
 	 */
 	@Override
-	public void init() {
+	public void init()
+	{
 		super.init();
 
 		// add your configuration here
 
-		DefaultPageManagerProvider pageManagerProvider = new DefaultPageManagerProvider(this) {
+		DefaultPageManagerProvider pageManagerProvider = new DefaultPageManagerProvider(this)
+		{
 			@Override
-			protected IPageStore newPageStore(final IDataStore dataStore) {
+			protected IPageStore newPageStore(final IDataStore dataStore)
+			{
 				return new AsyncPageStore(super.newPageStore(dataStore), 100);
 				// return super.newPageStore(dataStore);
 			}
@@ -51,26 +56,33 @@ public class WicketApplication extends WebApplication {
 
 	@SuppressWarnings("serial")
 	@Override
-	public Session newSession(Request request, Response response) {
-		return new WebSession(request) {
+	public Session newSession(Request request, Response response)
+	{
+		return new WebSession(request)
+		{
 			@Override
-			protected PageAccessSynchronizer newPageAccessSynchronizer(Duration timeout) {
+			protected PageAccessSynchronizer newPageAccessSynchronizer(Duration timeout)
+			{
 				// TODO Auto-generated method stub
-				return new PageAccessSynchronizer(timeout) {
+				return new PageAccessSynchronizer(timeout)
+				{
 					@Override
-					public void lockPage(int pageId) throws CouldNotLockPageException {
+					public void lockPage(int pageId) throws CouldNotLockPageException
+					{
 						System.out.println("lock " + pageId);
 						super.lockPage(pageId);
 					}
 
 					@Override
-					public void unlockPage(int pageId) {
+					public void unlockPage(int pageId)
+					{
 						System.out.println("unlock " + pageId);
 						super.unlockPage(pageId);
 					}
 
 					@Override
-					public void unlockAllPages() {
+					public void unlockAllPages()
+					{
 						System.out.println("unlock all");
 						super.unlockAllPages();
 					}
