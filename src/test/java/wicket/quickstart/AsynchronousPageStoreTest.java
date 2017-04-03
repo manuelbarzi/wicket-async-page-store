@@ -1,6 +1,7 @@
 package wicket.quickstart;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotEquals;
 import static org.junit.Assert.assertTrue;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
@@ -171,9 +172,11 @@ public class AsynchronousPageStoreTest
 
 		Thread.sleep(500);
 
-		asyncPageStore.getPage(sessionId, pageId);
+		IManageablePage pageBack = asyncPageStore.getPage(sessionId, pageId);
 
 		verify(pageStore, never()).getPage(sessionId, pageId);
+		
+		assertEquals(page, pageBack);
 	}
 
 	/**
@@ -205,9 +208,11 @@ public class AsynchronousPageStoreTest
 
 		Thread.sleep(1500);
 
-		asyncPageStore.getPage(sessionId, pageId);
+		IManageablePage pageBack = asyncPageStore.getPage(sessionId, pageId);
 
 		verify(pageStore, times(1)).getPage(sessionId, pageId);
+		
+		assertNotEquals(page, pageBack);
 	}
 
 	/**
