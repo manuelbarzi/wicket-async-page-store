@@ -29,11 +29,11 @@ import org.slf4j.LoggerFactory;
  * 
  * @author manuelbarzi
  */
-public class AsyncPageStore implements IPageStore
+public class AsynchronousPageStore implements IPageStore
 {
 
 	/** Log for reporting. */
-	private static final Logger log = LoggerFactory.getLogger(AsyncPageStore.class);
+	private static final Logger log = LoggerFactory.getLogger(AsynchronousPageStore.class);
 
 	/**
 	 * The time to wait when adding an {@link Entry} into the entries. In millis.
@@ -74,7 +74,7 @@ public class AsyncPageStore implements IPageStore
 	 * @param capacity
 	 *            the capacity of the queue that delays the saving
 	 */
-	public AsyncPageStore(final IPageStore pageStore, final int capacity)
+	public AsynchronousPageStore(final IPageStore pageStore, final int capacity)
 	{
 		this.pageStore = pageStore;
 		entries = new LinkedBlockingQueue<Entry>(capacity);

@@ -47,7 +47,7 @@ public class WicketApplication extends WebApplication
 			@Override
 			protected IPageStore newPageStore(final IDataStore dataStore)
 			{
-				return new AsyncPageStore(super.newPageStore(dataStore), 100);
+				return new AsynchronousPageStore(super.newPageStore(dataStore), 100);
 				// return super.newPageStore(dataStore);
 			}
 		};
